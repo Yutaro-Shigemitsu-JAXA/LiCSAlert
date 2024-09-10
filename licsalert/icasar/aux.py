@@ -10,6 +10,76 @@ Created on Tue Dec 17 18:19:37 2019
 
 #%%
 
+def create_all_perpendicular_baselines(bperp_dc, ifg_dates_all):
+
+    import pandas as pd
+    
+    bperp_dc['bperp'] = pd.to_numeric(bperp_dc['bperp'], errors='coerce')
+    print(f"bperp_dc['bperp']={bperp_dc['bperp']}")
+    print(f"bperp_dc['dates']={bperp_dc['dates']}")
+    if isinstance(ifg_dates_all, str):
+        ifg_dates_all = [ifg_dates_all]
+    split_dates = []
+    FST = []
+    SEC = []
+    
+    for date in ifg_dates_all:
+        parts = date.split('_')
+        if len(parts) == 2:
+            fst = parts[0]
+            sec = parts[1]
+            FST.append(fst)
+            SEC.append(sec)
+        else:
+            print(f"Warning: '{date}' is not in the expected format.")
+
+	# Making date list    
+    dates_list = FST + SEC
+    date_series = pd.Series(dates_list).astype(str)
+    ifg_dates_list = date_series.drop_duplicates().sort_values()
+    ifg_dates_list = ifg_dates_list.reset_index(drop=True)
+    print(f"ifg_dates_list={ifg_dates_list}")
+
+    print(f"len(ifg_dates_list)={len(ifg_dates_list)}, len(bperp_dc)={len(bperp_dc)}")
+    if len(ifg_dates_list) >= len(bperp_dc.bperp):
+        filtered_bperp_dc = bperp_dc
+        print(f"filtered_bperp_dc={filtered_bperp_dc}")
+    else:
+        filtered_bperp_dc = bperp_dc[bperp_dc['dates'].isin(ifg_dates_list)]
+        # raise ValueError("Error: The lengths of ifg_dates_list and bperp_dc are not equal. Program will terminate.")
+        print(f"filtered_bperp_dc={filtered_bperp_dc}")
+
+    fst_indexes = []
+    sec_indexes = []     
+    # for i, date in enumerate(ifg_dates_list):
+    #     for fst, sec in zip(FST, SEC):
+    #         if date == fst:
+    #             fst_indexes.append(i)
+    #         if date == sec:
+    #             sec_indexes.append(i)
+    for fst, sec in zip(FST, SEC):
+        if fst in ifg_dates_list.values:
+            fst_index = ifg_dates_list[ifg_dates_list == fst].index[0]
+            fst_indexes.append(fst_index)
+
+        if sec in ifg_dates_list.values:
+            sec_index = ifg_dates_list[ifg_dates_list == sec].index[0]
+            sec_indexes.append(sec_index)
+                
+    bperp_all = []
+    print(f"fst_indexes={fst_indexes}")
+    print(f"sec_indexes={sec_indexes}")
+    for fst_index, sec_index in zip(fst_indexes, sec_indexes):
+        if sec_index < len(filtered_bperp_dc) and fst_index < len(filtered_bperp_dc):
+            bperp_sum = (filtered_bperp_dc['bperp'].iloc[sec_index] - filtered_bperp_dc['bperp'].iloc[fst_index])
+            bperp_all.append(bperp_sum)
+        else:
+            raise IndexError("One of the indices is out-of-bounds.")  
+
+    print(f"bperp_all={(bperp_all)}")
+    return bperp_all
+
+#%%
 
 def maps_tcs_rescale(maps, tcs):
     """
@@ -126,11 +196,13 @@ def signals_to_master_signal_comparison(signals, master_signal, density = False)
             signal_to_msignal_comparison | dict | keys:
                                                     xyzs | list of rank 2 arrays | entry in the list for each signal, xyz are rows.  
                                                     line_xys | list of rank 2 arrays | entry in the list for each signal, xy are points to plot for the lines of best fit
-                                                    cor_coefs | list | correlation coefficients between each signal and the master signal.  
+                                                    cor_coefs | list | correlation coefficients between each signal and the master signal.
+                                                    residual_stds | list | the standard deviations of the residuals between y and yvals.
             
         History:
             2021_04_22 | MEG | Written.  
-            2021_04_26 | MEG | Add check that the signals are of the same length.  
+            2021_04_26 | MEG | Add check that the signals are of the same length. 
+            2024_09_10 | YS  | Add the calculation of the standard deviations
         """
         import numpy as np
         from scipy.stats import gaussian_kde
@@ -142,6 +214,7 @@ def signals_to_master_signal_comparison(signals, master_signal, density = False)
         xyzs = []                                                                              # initiate
         line_xys = []
         cor_coefs = []
+        residual_stds = []
         print(f"    Starting to calculate the 2D kernel density estimates for the signals.  Completed ", end = '')
         for signal_n, signal in enumerate(signals):                                            # signal is a row of signals, and loop through them.  
             
@@ -161,8 +234,12 @@ def signals_to_master_signal_comparison(signals, master_signal, density = False)
             line_coefs = poly.polyfit(x, y, 1)                                                  # polynomial of order 1 (i.e. a line of best fit)
             line_yvals = (poly.polyval(x, line_coefs))                                          # calculate the lines yvalues for all x points
             line_xys.append(np.vstack((x, line_yvals)))                                         # x vals are first row, y vals are 2nd row
-            
-            # 3: And the correlation coefficient
+           
+            # 3: Calculate standard deviation of residuals and add to list
+            residuals = y - line_yvals
+            residual_stds.append(np.std(residuals))            
+                        
+            # 4: And the correlation coefficient
             # import pdb; pdb.set_trace()
             cor_coefs.append(np.corrcoef(x, y)[1,0])                                            # which is a 2x2 matrix, but we just want the off diagonal (as thats the correlation coefficient between the signals)
             
@@ -171,7 +248,8 @@ def signals_to_master_signal_comparison(signals, master_signal, density = False)
         
         signal_to_msignal_comparison = {'xyzs' : xyzs,
                                         'line_xys' : line_xys,
-                                        'cor_coefs' : cor_coefs}
+                                        'cor_coefs' : cor_coefs,
+                                        'residual_stds' : residual_stds}        
         
         return signal_to_msignal_comparison
 
