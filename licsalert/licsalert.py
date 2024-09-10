@@ -970,7 +970,7 @@ def reconstruct_ts(ics_one_hot, sources_tcs, aux_data, displacement_r2):
 
 
 def load_or_create_ICASAR_results(run_ICASAR, displacement_r2, tbaseline_info, 
-                                  baseline_end, out_dir, ICASAR_settings):
+                                  baseline_end, out_dir, licsbas_dir, ICASAR_settings):
     """
     ICASAR results are always required by LiCSAlert, and these need either to be computed (usually only once at the start),
     or loaded (more common).  
@@ -1028,7 +1028,7 @@ def load_or_create_ICASAR_results(run_ICASAR, displacement_r2, tbaseline_info,
         # Run ICASAR (slow). # note that tcs are incremental (i.e. not cumulative)
         outputs = ICASAR(spatial_data = spatial_ICASAR_data,
                         out_folder = out_dir, **ICASAR_settings,
-                        ica_verbose = 'short', label_sources = True)                     
+                        ica_verbose = 'short', label_sources = True, licsbas_dir = licsbas_dir)                     
         
         (sources, tcs, residual, Iq, n_clusters, S_all_info, r2_ifg_means, 
         ics_labels ) = outputs; del outputs
