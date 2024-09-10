@@ -10,8 +10,8 @@ import pdb
 
 #%%
 
-def two_spatial_signals_plot(images, mask, dem, tcs_dc, tcs_all, t_baselines_dc, t_baselines_all, 
-                             title, ifg_dates_dc, fig_kwargs):
+def two_spatial_signals_plot(images, mask, dem, tcs_dc, tcs_all, t_baselines_dc, t_baselines_all, bperp_dc,
+                             title, ifg_dates_dc, ifg_dates_all, fig_kwargs):
     """
     Product the two plots that show spatial sources (comparison to DEM and ifg baseline, and then sources and cumulative time courses).  
     Note that this figure doesn't mind if we are working spatially or temporally - it just plots what it is given.  
@@ -36,7 +36,8 @@ def two_spatial_signals_plot(images, mask, dem, tcs_dc, tcs_all, t_baselines_dc,
         2022_01_14 | MEG | Add return of comparison dicts.  
         
     """
-    
+    from licsalert.icasar.aux import create_all_perpendicular_baselines
+                               
     # 1: First figure is just sources and their cumulative time courses
     # note that this uses incremental (daisy chain) time courses and integrates them
     try:
@@ -50,23 +51,26 @@ def two_spatial_signals_plot(images, mask, dem, tcs_dc, tcs_all, t_baselines_dc,
     # 2: Second figure may have access to all interfergram time courses and 
     #     temporal baselines, but may also not.          
     if t_baselines_all is not None:
+        bperp_all = create_all_perpendicular_baselines(bperp_dc, ifg_dates_all)
         temporal_data = {'tcs'                : tcs_all,
-                         'temporal_baselines' : t_baselines_all}
+                         'temporal_baselines' : t_baselines_all
+                         'perpendicular_baselines' : bperp_all}
     else:
         temporal_data = {'tcs'                : tcs_dc,
-                         'temporal_baselines' : t_baselines_dc}
+                         'temporal_baselines' : t_baselines_dc
+                         'perpendicular_baselines' : bperp_dc.bperp}
         
     try:
     # figure of IC to DEM correlations, and cumulative time courses 
         outputs  = dem_and_temporal_source_figure(images, mask, fig_kwargs, dem, 
                                                   temporal_data, 
                                                   fig_title = f"{title}_correlations")        
-        (dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons) = outputs
+        (dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons, tcs_to_bperp_tempbaselines_comparisons) = outputs
     except:
         raise Exception(f"Failed to plot the signals and their correlations "
                         "with the DEM and in time.  Exiting.  ")
                                                                                                                                                                                             # also note that it now returns information abou the sources and correlatiosn (comparison to the DEM, and how they're used in time.  )
-    return dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons
+    return dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons, tcs_to_bperp_tempbaselines_comparisons
 
 
   
@@ -317,16 +321,22 @@ def dem_and_temporal_source_figure(sources, sources_mask, fig_kwargs, dem = None
                                                                                np.asarray(temporal_data['temporal_baselines'])[np.newaxis,:], density = True)               # And then we can do kernel density plots for each IC and the DEM
     else:
         tcs_to_tempbaselines_comparisons = None
-                                                 
-    plot_source_tc_correlations(sources, sources_mask, dem_ma, dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons, fig_title = fig_title, **fig_kwargs)       # do the atual plotting
+
+    if temporal_data is not None:
+    perpendicular_baselines = np.asarray(temporal_data['perpendicular_baselines'])
+    tcs_to_bperp_tempbaselines_comparisons = signals_to_master_signal_comparison(temporal_data['tcs'].T,
+                                         np.asarray(temporal_data['perpendicular_baselines'])[np.newaxis,:], density = True)        
+                           
+    plot_source_tc_correlations(sources, sources_mask, dem_ma, dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons, tcs_to_bperp_tempbaselines_comparisons, fig_title = fig_title, **fig_kwargs)       # do the atual plotting
     print("Done.  ")
-    return dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons
+    return dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons, tcs_to_bperp_tempbaselines_comparisons
 
 #%%
 
 
 
 def plot_source_tc_correlations(sources, mask, dem = None, dem_to_ic_comparisons = None, tcs_to_tempbaselines_comparisons = None,
+                                tcs_to_bperp_tempbaselines_comparisons = None,
                                 png_path = './', figures = "window", fig_title = None):
     """Given information about the ICs, their correlations with the DEM, and their time courses correlations with an intererograms temporal basleine, 
     create a plot of this information.  
@@ -339,13 +349,15 @@ def plot_source_tc_correlations(sources, mask, dem = None, dem_to_ic_comparisons
                                         line_xys | list of rank 2 arrays | entry in the list for each signal, xy are points to plot for the lines of best fit
                                         cor_coefs | list | correlation coefficients between each signal and the master signal.  
         tcs_to_tempbaselines_comparisons| dict | keys as above.  
+        tcs_to_bperp_tempbaselines_comparisons| dict | keys as above. 
         png_path | string | if a png is to be saved, a path to a folder can be supplied, or left as default to write to current directory.  
         figures | string,  "window" / "png" / "png+window" | controls if figures are produced (either as a window, saved as a png, or both)
     Returns:
         figure
     History:
         2021_04_22 | MEG | Written.  
-        2021_04_23 | MEG | Update so that axes are removed if they are not being used.  
+        2021_04_23 | MEG | Update so that axes are removed if they are not being used. 
+        2024_09_10 | YS  | Update to compare perpendicular baselines (bperp) with time courses  
         
     """
     import numpy as np
@@ -364,7 +376,7 @@ def plot_source_tc_correlations(sources, mask, dem = None, dem_to_ic_comparisons
         ifg_colours_cent = remappedColorMap(ifg_colours, start=0.0, midpoint=cmap_mid, stop=1.0, name='shiftedcmap')
 
 
-    f, axes = plt.subplots(3, (n_sources+1), figsize = (15,7))
+    f, axes = plt.subplots(4, (n_sources+1), figsize = (15,9))
     plt.subplots_adjust(wspace = 0.1)
     f.canvas.manager.set_window_title(f"{fig_title}")
     
@@ -381,7 +393,7 @@ def plot_source_tc_correlations(sources, mask, dem = None, dem_to_ic_comparisons
         axes[1,0].set_yticks([])
     else:
         axes[1,0].set_axis_off()
-        
+    
     # 2: Find the x and y limits for the 2d scatter plots
     if dem_to_ic_comparisons is not None:                                                               # first check that it actually exists.  
         row1_all_xyzs = np.stack(dem_to_ic_comparisons['xyzs'], axis = 2)                               # merge together into a rank 3 numpy array. (3 x n_pixels x n_ics?)
@@ -391,7 +403,12 @@ def plot_source_tc_correlations(sources, mask, dem = None, dem_to_ic_comparisons
     if tcs_to_tempbaselines_comparisons is not None:                                                    # as above.          
         row2_all_xyzs = np.stack(tcs_to_tempbaselines_comparisons['xyzs'], axis = 2)
         row2_xlim = (np.min(row2_all_xyzs[0,]), np.max(row2_all_xyzs[0,]))        
-        row2_ylim = (np.min(row2_all_xyzs[1,]), np.max(row2_all_xyzs[1,]))        
+        row2_ylim = (np.min(row2_all_xyzs[1,]), np.max(row2_all_xyzs[1,]))      
+        
+    if tcs_to_bperp_tempbaselines_comparisons is not None:                                                    # as above.          
+        row3_all_xyzs = np.stack(tcs_to_bperp_tempbaselines_comparisons['xyzs'], axis = 2)
+        row3_xlim = (np.min(row3_all_xyzs[0,]), np.max(row3_all_xyzs[0,])) 
+        row3_ylim = (np.min(row3_all_xyzs[1,]), np.max(row3_all_xyzs[1,]))     
     
     # 3: Loop through each IC
     for ic_n in range(n_sources):
@@ -418,7 +435,7 @@ def plot_source_tc_correlations(sources, mask, dem = None, dem_to_ic_comparisons
                 axes[1,ic_n+1].yaxis.set_label_position('right')
             if ic_n == int(n_sources/2):
                 axes[1,ic_n+1].set_xlabel('Height (m)')
-            axes[1,ic_n+1].set_title(f"CorCoef: {np.round(dem_to_ic_comparisons['cor_coefs'][ic_n],2)}", fontsize = 7, color = 'r')    
+            axes[1,ic_n+1].set_title(f"CorCoef: {np.round(dem_to_ic_comparisons['cor_coefs'][ic_n], 2)}, StdDev: {np.round(dem_to_ic_comparisons['residual_stds'][ic_n], 2)}", fontsize=7, color='r')
         else:
             axes[1,ic_n+1].set_axis_off()
                 
@@ -437,16 +454,39 @@ def plot_source_tc_correlations(sources, mask, dem = None, dem_to_ic_comparisons
                 axes[2,ic_n+1].yaxis.set_ticklabels([])                                                            # if it's not the last one, turn the  tick labels off
             else:
                 axes[2,ic_n+1].yaxis.set_ticks_position('right')                                                   # but if it is, make sure they're on the right.  
-                axes[2,ic_n+1].set_ylabel(f"IC usage strength")
+                axes[2,ic_n+1].set_ylabel(f"IC strength")
                 axes[2,ic_n+1].yaxis.set_label_position('right')
             
             if ic_n == int(n_sources/2):                                                                            # on roughly the middle plot....
                 axes[2,ic_n+1].set_xlabel('Temporal Baseline (days)')                                               # add an x label.  
                                 
-            axes[2,ic_n+1].set_title(f"CorCoef: {np.round(tcs_to_tempbaselines_comparisons['cor_coefs'][ic_n],2)}", fontsize = 7, color = 'r')    
+            axes[2,ic_n+1].set_title(f"CorCoef: {np.round(tcs_to_tempbaselines_comparisons['cor_coefs'][ic_n], 2)}, StdDev: {np.round(tcs_to_tempbaselines_comparisons['residual_stds'][ic_n], 2)}", fontsize=7, color='r')
         else:
             axes[2,ic_n+1].set_axis_off()
 
+        # 2D: Plotting the time courses to temporal baseline, if the data are available
+        if tcs_to_bperp_tempbaselines_comparisons is not None:
+            axes[3,ic_n+1].scatter(tcs_to_bperp_tempbaselines_comparisons['xyzs'][ic_n][0,:],
+                                   tcs_to_bperp_tempbaselines_comparisons['xyzs'][ic_n][1,:], c= tcs_to_bperp_tempbaselines_comparisons['xyzs'][ic_n][2,:])
+            axes[3,ic_n+1].plot(tcs_to_bperp_tempbaselines_comparisons['line_xys'][ic_n][0,:], tcs_to_bperp_tempbaselines_comparisons['line_xys'][ic_n][1,:], c = 'r')
+            axes[3,ic_n+1].set_xlim(row3_xlim[0], row3_xlim[1])
+            axes[3,ic_n+1].set_ylim(row3_ylim[0], row3_ylim[1])                                                    # force them to all share a y axis.  Gnerally not good as such varying scales.  
+            axes[3,ic_n+1].axhline(0, c='k')
+            axes[3,ic_n+1].yaxis.tick_right()
+
+            if ic_n != (n_sources-1):
+                axes[3,ic_n+1].yaxis.set_ticklabels([])                                                            # if it's not the last one, turn the  tick labels off
+            else:
+                axes[3,ic_n+1].yaxis.set_ticks_position('right')                                                   # but if it is, make sure they're on the right.  
+                axes[3,ic_n+1].set_ylabel(f"IC strength")
+                axes[3,ic_n+1].yaxis.set_label_position('right')
+            
+            if ic_n == int(n_sources/2):                                                                            # on roughly the middle plot....
+                axes[3,ic_n+1].set_xlabel('Perpendicular Baseline (m)')                                               # add an x label.  
+                                
+            axes[3,ic_n+1].set_title(f"CorCoef: {np.round(tcs_to_bperp_tempbaselines_comparisons['cor_coefs'][ic_n], 2)}, StdDev: {np.round(tcs_to_bperp_tempbaselines_comparisons['residual_stds'][ic_n], 2)}", fontsize=7, color='r')
+        else:
+            axes[3,ic_n+1].set_axis_off()
 
     # 3: The ICs colorbar
     axin = axes[0,0].inset_axes([0.5, 0, 0.1, 1])            
@@ -455,7 +495,7 @@ def plot_source_tc_correlations(sources, mask, dem = None, dem_to_ic_comparisons
     axin.yaxis.set_ticks_position('left')
 
     # last tidying up
-    for ax in [axes[0,0], axes[2,0]]:
+    for ax in [axes[0,0], axes[2,0], axes[3,0]]:
         ax.set_axis_off()
 
     f.tight_layout()    
@@ -472,6 +512,7 @@ def plot_source_tc_correlations(sources, mask, dem = None, dem_to_ic_comparisons
 
 
 #%%
+
 
 
 
