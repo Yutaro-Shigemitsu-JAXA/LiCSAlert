@@ -8,7 +8,82 @@ Created on Fri Oct 20 09:59:48 2023
 
 import pdb
 
+#%%
 
+def load_perpendicular_baselines(LiCSBAS_out_folder):
+	
+    import pandas as pd
+    import os
+    import re
+    from pathlib import Path
+          
+    LiCSBAS_folders = {}
+    LiCSBAS_out_folder = Path(LiCSBAS_out_folder)
+    LiCSBAS_folders['all'] = os.listdir(LiCSBAS_out_folder)
+    
+    for LiCSBAS_folder in LiCSBAS_folders['all']:
+        if bool(re.match(re.compile('TS_.'), LiCSBAS_folder)):
+            LiCSBAS_folders['TS_'] = LiCSBAS_folder
+    
+    for LiCSBAS_folder in LiCSBAS_folders['all']:
+        if re.match(re.compile('GEOCml.+clip'), LiCSBAS_folder):
+            LiCSBAS_folders['ifgs'] = LiCSBAS_folder
+    
+    if 'ifgs' not in LiCSBAS_folders:
+        for LiCSBAS_folder in LiCSBAS_folders['all']:
+            if re.match(re.compile('GEOCml.+'), LiCSBAS_folder):
+                LiCSBAS_folders['ifgs'] = LiCSBAS_folder
+                break  
+    
+    data = pd.read_csv(LiCSBAS_out_folder / LiCSBAS_folders['ifgs'] / 'baselines', sep='\s+', header=None)
+
+    if data.shape[1] == 9:
+        data[1] = data[1].astype(str)
+        data[2] = data[2].astype(str) 
+    	# Making date list
+        unique_dates = pd.concat([data[1], data[2]]).drop_duplicates().sort_values()  
+        print(f"The data has {data.shape[1]} columns. Proceeding with calculations.")
+        cumulative_baseline = 0
+        baselines = []
+		    
+        for i in range(len(unique_dates) - 1):
+            fst = unique_dates.iloc[i]
+            sec = unique_dates.iloc[i + 1]
+		        
+		    # Search for the corresponding baseline
+            baseline = data[(data[1] == fst) & (data[2] == sec)][3].values
+            if baseline.size > 0:
+                baselines.append((fst, sec, baseline[0]))
+		    
+	    # Calculation and output of cumulative baselines
+        cumulative_baselines = []
+        cumulative_baselines.append([unique_dates.iloc[0], 0])
+        for fst, sec, baseline in baselines:
+            cumulative_baseline += baseline
+            cumulative_baselines.append((sec, cumulative_baseline))
+        cumulative_baselines_df = pd.DataFrame({
+            'bperp': [row[1] for row in cumulative_baselines],
+            'dates': [row[0] for row in cumulative_baselines]
+        })
+
+    elif data.shape[1] == 4:
+        data[0] = data[0].astype(str)
+        data[1] = data[1].astype(str) 
+    	# Making date list
+        unique_dates = pd.concat([data[0], data[1]]).drop_duplicates().sort_values() 
+        print(f"The data has {data.shape[1]} columns. Proceeding with calculations.")
+		    
+        reference_value = float(data.iloc[0, 2])
+        cumulative_baselines = data[2].astype(float) - reference_value
+        cumulative_baselines_df = pd.DataFrame({'bperp': cumulative_baselines})
+        unique_dates = unique_dates.drop_duplicates().reset_index(drop=True)
+        cumulative_baselines_df = cumulative_baselines_df.reset_index(drop=True)
+        cumulative_baselines_df['dates'] = unique_dates
+        
+    else:
+        raise ValueError("Error: The data does not have 4 or 9 columns.") 
+
+    return cumulative_baselines_df
 
 #%%
 
