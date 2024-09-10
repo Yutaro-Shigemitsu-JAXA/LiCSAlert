@@ -16,7 +16,7 @@ def ICASAR(n_pca_comp_start, n_pca_comp_stop,
            tsne_param = (30,12), hdbscan_param = (35,10),
            out_folder = './ICASAR_results/', ica_verbose = 'long', 
            inset_axes_side = {'x':0.1, 'y':0.1}, 
-           load_fastICA_results = False, label_sources = False, **kwargs)
+           load_fastICA_results = False, label_sources = False, **kwargs):
     """
     Perform ICASAR, which is a robust way of applying sICA to data.  As PCA is also performed as part of this,
     the sources and time courses found by PCA are also returned.  Note that this can be run with eitehr 1d data (e.g. time series for a GPS station),
