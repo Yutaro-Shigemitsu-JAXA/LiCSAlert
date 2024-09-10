@@ -53,11 +53,11 @@ def two_spatial_signals_plot(images, mask, dem, tcs_dc, tcs_all, t_baselines_dc,
     if t_baselines_all is not None:
         bperp_all = create_all_perpendicular_baselines(bperp_dc, ifg_dates_all)
         temporal_data = {'tcs'                : tcs_all,
-                         'temporal_baselines' : t_baselines_all
+                         'temporal_baselines' : t_baselines_all,
                          'perpendicular_baselines' : bperp_all}
     else:
         temporal_data = {'tcs'                : tcs_dc,
-                         'temporal_baselines' : t_baselines_dc
+                         'temporal_baselines' : t_baselines_dc,
                          'perpendicular_baselines' : bperp_dc.bperp}
         
     try:
