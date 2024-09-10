@@ -214,6 +214,7 @@ def LiCSAlert_monitoring_mode(outdir, region, volcano,
                                                 displacement_r2, tbaseline_info,                             
                                                 licsalert_settings['baseline_end'],
                                                 volcano_dir / "ICASAR_results", 
+                                                licsbas_dir,
                                                 icasar_settings)        
         (icasar_sources, icasar_mask, ics_labels) = outputs; del outputs
 
