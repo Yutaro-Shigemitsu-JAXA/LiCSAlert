@@ -323,9 +323,9 @@ def dem_and_temporal_source_figure(sources, sources_mask, fig_kwargs, dem = None
         tcs_to_tempbaselines_comparisons = None
 
     if temporal_data is not None:
-    perpendicular_baselines = np.asarray(temporal_data['perpendicular_baselines'])
-    tcs_to_bperp_tempbaselines_comparisons = signals_to_master_signal_comparison(temporal_data['tcs'].T,
-                                         np.asarray(temporal_data['perpendicular_baselines'])[np.newaxis,:], density = True)        
+        perpendicular_baselines = np.asarray(temporal_data['perpendicular_baselines'])
+        tcs_to_bperp_tempbaselines_comparisons = signals_to_master_signal_comparison(temporal_data['tcs'].T,
+                                                 np.asarray(temporal_data['perpendicular_baselines'])[np.newaxis,:], density = True)        
                            
     plot_source_tc_correlations(sources, sources_mask, dem_ma, dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons, tcs_to_bperp_tempbaselines_comparisons, fig_title = fig_title, **fig_kwargs)       # do the atual plotting
     print("Done.  ")
