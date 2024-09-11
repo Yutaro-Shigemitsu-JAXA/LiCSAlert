@@ -360,6 +360,7 @@ def ICASAR(n_pca_comp_start, n_pca_comp_stop,
                                          bperp_dc, 
                                          f"02_PCA_{n_pca_comp_stop}_components", 
                                          spatial_data['ifg_dates_dc'], 
+                                         ifg_dates_all,
                                          fig_kwargs)
             elif sica_tica == 'tica':
                 A_pca = A_pca[:, :n_pca_comp_stop]
