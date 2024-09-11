@@ -272,7 +272,7 @@ def ICASAR(n_pca_comp_start, n_pca_comp_stop,
         ifgs_dc = ifg_timeseries(spatial_data['ifgs_dc'], spatial_data['ifg_dates_dc'])                                                 # create a class (an ifg_timeseries) using the daisy chain ifgs
         ifgs_all = ifg_timeseries(ifgs_all_r2, ifg_dates_all)                                                                           # create a class (an ifg_timeseries) using all possible ifgs
         ifgs_cum = ifg_timeseries(ifgs_cum_r2, ifg_dates_cum)                                                                           # create a class (an ifg_timeseries) using the cumualtive ifgs.  
-        del ifgs_all_r2, ifg_dates_all, ifgs_cum_r2, ifg_dates_cum
+        del ifgs_all_r2, ifgs_cum_r2, ifg_dates_cum #, ifg_dates_all
         
         if sica_tica == 'sica':
             X_mean = ifgs_dc.means_space                                                                                                # daisy chain ifgs are supplied, so only interested in returning daisy chain means.  
