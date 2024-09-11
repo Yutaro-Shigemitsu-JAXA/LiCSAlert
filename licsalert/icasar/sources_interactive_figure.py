@@ -52,6 +52,7 @@ def plot_2d_interactive_fig(S_pca, S_hists, mask, spatial, sica_tica,
         
     import matplotlib.pyplot as plt
     import matplotlib
+    matplotlib.use('Qt5Agg')  
     import numpy as np
     from matplotlib.widgets import Slider, Button
     from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
