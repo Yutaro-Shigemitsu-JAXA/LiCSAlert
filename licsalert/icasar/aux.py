@@ -63,7 +63,6 @@ def create_all_perpendicular_baselines(bperp_dc, ifg_dates_all):
         else:
             raise IndexError("One of the indices is out-of-bounds.")  
 
-    print(f"bperp_all={(bperp_all)}")
     return bperp_all
 
 #%%
