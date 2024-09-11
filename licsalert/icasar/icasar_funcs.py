@@ -375,7 +375,8 @@ def ICASAR(n_pca_comp_start, n_pca_comp_stop,
                                          ifgs_cum.t_baselines,
                                          bperp_dc,
                                          f"02_PCA_{n_pca_comp_stop}_components", 
-                                         spatial_data['ifg_dates_dc'], 
+                                         spatial_data['ifg_dates_dc'],
+                                         ifg_dates_all,
                                          fig_kwargs)                    
         else:
             
