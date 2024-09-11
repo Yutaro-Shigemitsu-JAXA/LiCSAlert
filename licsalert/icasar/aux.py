@@ -15,8 +15,6 @@ def create_all_perpendicular_baselines(bperp_dc, ifg_dates_all):
     import pandas as pd
     
     bperp_dc['bperp'] = pd.to_numeric(bperp_dc['bperp'], errors='coerce')
-    print(f"bperp_dc['bperp']={bperp_dc['bperp']}")
-    print(f"bperp_dc['dates']={bperp_dc['dates']}")
     if isinstance(ifg_dates_all, str):
         ifg_dates_all = [ifg_dates_all]
     split_dates = []
@@ -38,25 +36,16 @@ def create_all_perpendicular_baselines(bperp_dc, ifg_dates_all):
     date_series = pd.Series(dates_list).astype(str)
     ifg_dates_list = date_series.drop_duplicates().sort_values()
     ifg_dates_list = ifg_dates_list.reset_index(drop=True)
-    print(f"ifg_dates_list={ifg_dates_list}")
 
     print(f"len(ifg_dates_list)={len(ifg_dates_list)}, len(bperp_dc)={len(bperp_dc)}")
     if len(ifg_dates_list) >= len(bperp_dc.bperp):
         filtered_bperp_dc = bperp_dc
-        print(f"filtered_bperp_dc={filtered_bperp_dc}")
     else:
         filtered_bperp_dc = bperp_dc[bperp_dc['dates'].isin(ifg_dates_list)]
-        # raise ValueError("Error: The lengths of ifg_dates_list and bperp_dc are not equal. Program will terminate.")
-        print(f"filtered_bperp_dc={filtered_bperp_dc}")
 
     fst_indexes = []
     sec_indexes = []     
-    # for i, date in enumerate(ifg_dates_list):
-    #     for fst, sec in zip(FST, SEC):
-    #         if date == fst:
-    #             fst_indexes.append(i)
-    #         if date == sec:
-    #             sec_indexes.append(i)
+
     for fst, sec in zip(FST, SEC):
         if fst in ifg_dates_list.values:
             fst_index = ifg_dates_list[ifg_dates_list == fst].index[0]
@@ -67,8 +56,6 @@ def create_all_perpendicular_baselines(bperp_dc, ifg_dates_all):
             sec_indexes.append(sec_index)
                 
     bperp_all = []
-    print(f"fst_indexes={fst_indexes}")
-    print(f"sec_indexes={sec_indexes}")
     for fst_index, sec_index in zip(fst_indexes, sec_indexes):
         if sec_index < len(filtered_bperp_dc) and fst_index < len(filtered_bperp_dc):
             bperp_sum = (filtered_bperp_dc['bperp'].iloc[sec_index] - filtered_bperp_dc['bperp'].iloc[fst_index])
