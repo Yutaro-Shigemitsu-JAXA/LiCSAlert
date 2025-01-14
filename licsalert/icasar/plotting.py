@@ -464,7 +464,7 @@ def plot_source_tc_correlations(sources, mask, dem = None, dem_to_ic_comparisons
         else:
             axes[2,ic_n+1].set_axis_off()
 
-        # 2D: Plotting the time courses to temporal baseline, if the data are available
+        # 2D: Plotting the time courses to perpendicular baseline, if the data are available
         if tcs_to_bperp_tempbaselines_comparisons is not None:
             axes[3,ic_n+1].scatter(tcs_to_bperp_tempbaselines_comparisons['xyzs'][ic_n][0,:],
                                    tcs_to_bperp_tempbaselines_comparisons['xyzs'][ic_n][1,:], c= tcs_to_bperp_tempbaselines_comparisons['xyzs'][ic_n][2,:])
