@@ -10,6 +10,59 @@ import pdb
 
 #%%
 
+def load_demerror(LiCSBAS_out_folder):
+	
+    from pathlib import Path
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import os
+    import re
+    import h5py as h5
+    import numpy as np
+
+    LiCSBAS_out_folder = Path(LiCSBAS_out_folder)
+		
+    #: Work out the names of LiCSBAS folders 
+    LiCSBAS_folders = {}
+    LiCSBAS_out_folder = Path(LiCSBAS_out_folder)
+    LiCSBAS_folders['all'] = os.listdir(LiCSBAS_out_folder)
+    
+    for LiCSBAS_folder in LiCSBAS_folders['all']:
+        if bool(re.match(re.compile('TS_.'), LiCSBAS_folder)):
+            LiCSBAS_folders['TS_'] = LiCSBAS_folder
+    
+    for LiCSBAS_folder in LiCSBAS_folders['all']:
+        if re.match(re.compile('GEOCml.+clip'), LiCSBAS_folder):
+            LiCSBAS_folders['ifgs'] = LiCSBAS_folder
+    
+    if 'ifgs' not in LiCSBAS_folders:
+        for LiCSBAS_folder in LiCSBAS_folders['all']:
+            if re.match(re.compile('GEOCml.+'), LiCSBAS_folder):
+                LiCSBAS_folders['ifgs'] = LiCSBAS_folder
+                break  
+                
+    TS_folder = LiCSBAS_out_folder / LiCSBAS_folders['TS_']
+    if TS_folder is None:
+        raise FileNotFoundError("There are no the folder, which is TS_")
+
+    demerr_file = TS_folder / 'results' / 'demerr'
+    cum_h5_file = TS_folder / 'cum.h5'
+    
+    with h5.File(cum_h5_file, 'r') as h5file:
+        rows, cols = h5file['cum'].shape[1], h5file['cum'].shape[2]
+    
+    if not demerr_file.exists():
+        raise FileNotFoundError(f"There are no demerr file: {demerr_file.resolve()}")
+        
+    with h5.File(cum_h5_file, 'r') as h5file:
+        rows, cols = h5file['cum'].shape[1], h5file['cum'].shape[2]
+    
+    demerr_data = np.fromfile(demerr_file, dtype=np.float32)
+    demerr_data = demerr_data.reshape((rows, cols))
+    demerr_df = pd.DataFrame(demerr_data)
+           
+    return demerr_df
+
 def load_perpendicular_baselines(LiCSBAS_out_folder):
 	
     import pandas as pd
@@ -1064,3 +1117,4 @@ def square_crop_r3_data_in_space(displacement_r3, crop_side_length = 20000):
                                                                             x_start:x_stop]
     
     return displacement_r3_crop
+
