@@ -133,6 +133,7 @@ def ICASAR(n_pca_comp_start, n_pca_comp_stop,
     # internal functions
     from licsalert.data_importing import ifg_timeseries
     from licsalert.data_importing import load_perpendicular_baselines
+    from licsalert.data_importing import load_demerror
     from licsalert.icasar.blind_signal_separation import PCA_meg2
     from licsalert.icasar.aux import  bss_components_inversion, maps_tcs_rescale
     from licsalert.icasar.aux import r2_to_r3, create_all_ifgs, create_cumulative_ifgs
@@ -352,8 +353,10 @@ def ICASAR(n_pca_comp_start, n_pca_comp_stop,
                 A_pca_all = inversion_results[1]['tcs'].T
                 licsbas_dir = kwargs.get('licsbas_dir', None)
                 bperp_dc = load_perpendicular_baselines(licsbas_dir)
+                demerror = load_demerror(licsbas_dir)
                 two_spatial_signals_plot(S_pca, spatial_data['mask'], 
-                                         spatial_data['dem'], 
+                                         spatial_data['dem'],
+                                         demerror, 
                                          A_pca_dc, A_pca_all, 
                                          ifgs_dc.t_baselines, 
                                          ifgs_all.t_baselines, 
@@ -368,8 +371,10 @@ def ICASAR(n_pca_comp_start, n_pca_comp_stop,
                 S_pca_dc = np.diff(S_pca_cum, axis = 1, prepend = 0)
                 licsbas_dir = kwargs.get('licsbas_dir', None)
                 bperp_dc = load_perpendicular_baselines(licsbas_dir)
+                demerror = load_demerror(licsbas_dir)
                 two_spatial_signals_plot(A_pca.T, spatial_data['mask'], 
                                          spatial_data['dem'], 
+                                         demerror,                                         
                                          S_pca_dc.T, S_pca_cum.T, 
                                          ifgs_dc.t_baselines, 
                                          ifgs_cum.t_baselines,
@@ -477,7 +482,7 @@ def ICASAR(n_pca_comp_start, n_pca_comp_stop,
             A_ica_dc = inversion_results[0]['tcs'].T                                                                                                               # in sICA, time courses are in A
             A_ica_all = inversion_results[1]['tcs'].T                                                                                                              # time courses to fit all possible interferograms.                                   
             if fig_kwargs['figures'] != "none":                
-                dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons, tcs_to_bperp_tempbaselines_comparisons =   two_spatial_signals_plot(S_ica, spatial_data['mask'], spatial_data['dem'], 
+                dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons, tcs_to_bperp_tempbaselines_comparisons, demerror_to_sources_comparisons = two_spatial_signals_plot(S_ica, spatial_data['mask'], spatial_data['dem'], demerror,
                                                                                                           A_ica_dc, A_ica_all, ifgs_dc.t_baselines, ifgs_all.t_baselines, bperp_dc,
                                                                                                           "03_ICA_sources", spatial_data['ifg_dates_dc'], ifg_dates_all, fig_kwargs)
         elif sica_tica == 'tica':
@@ -488,8 +493,8 @@ def ICASAR(n_pca_comp_start, n_pca_comp_stop,
             A_ica = inversion_results[0]['tcs']                                                                                                                   # in tICA, spatial sources are row vector (ie these are the images)
             source_residuals = inversion_results[0]['residual']                                                                                                   # how well the cumulative time courses are fit?  Not clear.  
             if fig_kwargs['figures'] != "none":
-                dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons, tcs_to_bperp_tempbaselines_comparisons = two_spatial_signals_plot(A_ica, spatial_data['mask'], spatial_data['dem'],                           # here A are the images, simply the result of the inversion and no consideration given to their mean
-                                                                                                        S_ica_dc.T, S_ica_cum.T, ifgs_dc.t_baselines, ifgs_cum.t_baselines, bperp_dc,          # 
+                dem_to_sources_comparisons, tcs_to_tempbaselines_comparisons, tcs_to_bperp_tempbaselines_comparisons, demerror_to_sources_comparisons = two_spatial_signals_plot(A_ica, spatial_data['mask'], spatial_data['dem'], demerror,                          # here A are the images, simply the result of the inversion and no consideration given to their mean
+                                                                                                        s_ica_dc.t, s_ica_cum.t, ifgs_dc.t_baselines, ifgs_cum.t_baselines, bperp_dc,          # 
                                                                                                         "03_ICA_sources", spatial_data['ifg_dates_dc'], ifg_dates_all, fig_kwargs)                    
     else:
         inversion_results = bss_components_inversion(S_ica, [X_mc])                                                 # invert to fit the mean centered mixture.    
