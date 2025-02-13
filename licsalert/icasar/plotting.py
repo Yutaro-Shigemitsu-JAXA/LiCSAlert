@@ -373,8 +373,8 @@ def plot_source_tc_correlations(sources, mask, dem = None, demerror = None, dem_
     """
     import numpy as np
     import matplotlib.pyplot as plt
-    from licsalert2.aux import col_to_ma
-    from licsalert2.icasar.plotting2 import remappedColorMap, truncate_colormap
+    from licsalert.aux import col_to_ma
+    from licsalert.icasar.plotting import remappedColorMap, truncate_colormap
 
     n_sources = sources.shape[0]
 
