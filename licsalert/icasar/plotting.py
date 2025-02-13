@@ -284,8 +284,8 @@ def dem_and_temporal_source_figure(sources, sources_mask, fig_kwargs, dem = None
     import numpy as np
     import numpy.ma as ma
     
-    from licsalert2.monitoring_functions import update_mask_sources_ifgs
-    from licsalert2.icasar.aux2 import signals_to_master_signal_comparison
+    from licsalert.monitoring_functions import update_mask_sources_ifgs
+    from licsalert.icasar.aux import signals_to_master_signal_comparison
 
     def reduce_n_pixs(r2_arrays, n_pixels_new):
         """
