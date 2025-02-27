@@ -42,7 +42,7 @@ def two_spatial_signals_plot(images, mask, dem, demerror, tcs_dc, tcs_all, t_bas
     # note that this uses incremental (daisy chain) time courses and integrates them
     try:
         plot_spatial_signals(images.T, mask, tcs_dc.T, mask.shape, 
-                             title = f"{title}_time", temporal_baselines = t_baselines_dc,                                     
+                             title = f"{title}_time", temporal_baselines = t_baselines_dc, perpendicular_baselines = bperp_dc,                                    
                               ifg_dates_dc = ifg_dates_dc, **fig_kwargs)                      
     except:
         print(f"Failed to plot the signals and their cumualive time courses.  "
@@ -77,7 +77,7 @@ def two_spatial_signals_plot(images, mask, dem, demerror, tcs_dc, tcs_all, t_bas
   
 #%%
 def plot_spatial_signals(spatial_map, pixel_mask, tcs, shape, title, ifg_dates_dc, 
-                         temporal_baselines, figures = "window",  png_path = './'):
+                         temporal_baselines, perpendicular_baselines = bperp_dc, figures = "window",  png_path = './'):
     """
     Input:
         spatial map | pxc matrix of c component maps (p pixels) (i.e. images are column vectors)
@@ -207,22 +207,36 @@ def plot_spatial_signals(spatial_map, pixel_mask, tcs, shape, title, ifg_dates_d
     
     fig1 = plt.figure(figsize=(14,8))
     #f.suptitle(title, fontsize=14)
-    grid = gridspec.GridSpec(n_sources, 6, wspace=0.3, hspace=0.3)                        # divide into 2 sections, 1/5 for ifgs and 4/5 for components
+    height_ratios = [1]*(n_sources+2)
+    if n_sources > 2:
+        height_ratios[1] = 0.2
+    grid = gridspec.GridSpec(n_sources+2, 6, wspace=0.3, hspace=0.5, height_ratios=height_ratios)                        # divide into 2 sections, 1/5 for ifgs and 4/5 for components
     fig1.canvas.manager.set_window_title(title)
-    for i in range(n_sources):    
+    ax_ctc_0 = plt.Subplot(fig1, grid[0, 1:])
+    linegraph(perpendicular_baselines.bperp.values[1:], ax_ctc_0, temporal_baselines)
+    ax_ctc_0.yaxis.tick_right()
+    ax_ctc_0.set_ylabel('[m]')
+    ax_ctc_0.yaxis.set_label_position('right')
+    fig1.add_subplot(ax_ctc_0)
+    xticks_every_3months(ax_ctc_0, day0_date, np.cumsum(temporal_baselines), include_tick_labels = False) 
+    ax_ctc_0.set_title('Perpendicular baselines')
+    
+    for i in range(n_sources):
         # 0: define axes
-        ax_source = plt.Subplot(fig1, grid[i,0])                                                                                        # spatial pattern
-        ax_ctc = plt.Subplot(fig1, grid[i,1:])                                                                                          # ctc = cumulative time course
+        ax_source = plt.Subplot(fig1, grid[i+2,0])                                                                                        # spatial pattern
+        ax_ctc = plt.Subplot(fig1, grid[i+2,1:])                                                                                          # ctc = cumulative time course
         # 1: plot the images (sources)
         im = ax_source.matshow(spatial_maps_ma[i], cmap = ifg_colours_cent, vmin = np.min(spatial_map), vmax = np.max(spatial_map))
         ax_source.set_xticks([])
         ax_source.set_yticks([])
-
         linegraph(np.cumsum(tcs[i,:]), ax_ctc, temporal_baselines)
         if i != (n_sources-1):
             xticks_every_3months(ax_ctc, day0_date, np.cumsum(temporal_baselines), include_tick_labels = False)                     # no tick labels
         else:
             xticks_every_3months(ax_ctc, day0_date, np.cumsum(temporal_baselines), include_tick_labels = True)                      # unles the last one.  
+        
+        if i == 0:
+            ax_ctc.set_title('IC strength')
             
         # if shared ==1:
         #     ax_ctc.set_ylim([np.min(np.cumsum(tcs)), np.max(np.cumsum(tcs))])
