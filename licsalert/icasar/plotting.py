@@ -421,9 +421,12 @@ def plot_source_tc_correlations(sources, mask, dem = None, demerror = None, dem_
     
     # 1.5: Plot the DEM error:
     if dem is not None:
-        #terrain_cmap = plt.get_cmap('terrain')
+        vmin = np.nanmin(demerror)
+        vmax = np.nanmax(demerror)
+        norm = TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)
+        terrain_cmap = plt.get_cmap('coolwarm')
         #terrain_cmap = truncate_colormap(terrain_cmap, 0.2, 1)    
-        demerror_plot = axes[4,0].matshow(demerror)#, cmap = terrain_cmap)
+        demerror_plot = axes[4,0].matshow(demerror, cmap = terrain_cmap, norm=norm)
         axin = axes[4,0].inset_axes([0, -0.06, 1, 0.05])
         cbar_1 = f.colorbar(demerror_plot, cax=axin, orientation='horizontal')
         cbar_1.set_label('DEM error coefficient (mm/m)', fontsize = 8)
